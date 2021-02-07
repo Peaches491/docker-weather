@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 
-class GracefulKiller:
+class GracefulKiller(object):
     kill_now = False
     def __init__(self):
         signal.signal(signal.SIGINT, self.exit_gracefully)
@@ -20,6 +20,12 @@ class GracefulKiller:
     def exit_gracefully(self,signum, frame):
         print("Exiting gracefully")
         self.kill_now = True
+
+    def sleep(self, duration, step_size=1.0):
+        sleep_start = time.time()
+        while time.time() - sleep_start < duration and not self.kill_now:
+            time.sleep(step_size)
+
 
 def isfloat(value):
     try:
@@ -50,7 +56,18 @@ def record_weather(api_key, latitude, longitude, db_addr, db_port, db_name, peri
     print("Done.")
 
     while not killer.kill_now:
-        result = requests.get(url)
+        result = {}
+        while not killer.kill_now:
+            try:
+                result = requests.get(url)
+                if result.status_code != requests.codes.ok:
+                    print('Request failed: %s' % result)
+                    print('Retrying...')
+                break
+            except requests.exceptions.ConnectionError as ex:
+                print('Request failed: %s' % ex.message, file=sys.stderr)
+            killer.sleep(5)
+
         data = result.json()
 
         database_dicts = client.get_list_database()
@@ -77,9 +94,7 @@ def record_weather(api_key, latitude, longitude, db_addr, db_port, db_name, peri
         sys.stdout.flush()
 
         # Sleep in short bursts, so that we may exit gracefully
-        sleep_start = time.time()
-        while time.time() - sleep_start < period and not killer.kill_now:
-            time.sleep(1)
+        killer.sleep(period)
 
 def get_required_env(name):
     variable = os.environ.get(name)
