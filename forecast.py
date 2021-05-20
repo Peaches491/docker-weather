@@ -77,18 +77,22 @@ def record_weather(api_key, latitude, longitude, db_addr, db_port, db_name, peri
         else:
             client.create_database(db_name)
 
-        json_body = [{
-            "measurement" : key,
-            "tags" : tags_set,
-            "fields": {
-                "value": float(value)
-            }} for key, value in data['currently'].items() if isfloat(value)]
+        try:
+            json_body = [{
+                "measurement" : key,
+                "tags" : tags_set,
+                "fields": {
+                    "value": float(value)
+                }} for key, value in data['currently'].items() if isfloat(value)]
+            print("Sending to InfluxDB:")
+            pprint.pprint(json_body)
+            print("Write success: ", end="")
+            print(client.write_points(json_body))
+            print("Measurement complete")
+        except KeyError:
+            pprint.pprint(data)
+            print("Measurement failed.")
 
-        print("Sending to InfluxDB:")
-        pprint.pprint(json_body)
-        print("Write success: ", end="")
-        print(client.write_points(json_body))
-        print("Measurement complete")
         print("Sleeping for %d seconds..." % period)
         print()
         sys.stdout.flush()
