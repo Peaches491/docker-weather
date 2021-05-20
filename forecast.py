@@ -118,7 +118,7 @@ def main():
     db_addr = os.getenv("INFLUXDB_ADDRESS", 'influxdb')
     db_port = os.getenv("INFLUXDB_PORT", 8086)
     db_name = os.getenv("INFLUXDB_NAME", 'weather')
-    period = int(os.getenv("PERIOD", 120))
+    period = int(os.getenv("PERIOD", 900)) # 15 minutes
     units = os.getenv("UNITS", "us")
     tags = os.getenv("TAGS", "{}")
 
